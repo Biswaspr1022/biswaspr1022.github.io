@@ -23,6 +23,7 @@ textarea{min-height:130px;font-family:ui-monospace,monospace;font-size:13px}
 .msg{margin-top:10px;font-size:14px}.er{color:var(--er)}.ok{color:var(--ok)}
 .rec{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--bd)}.rec:first-child{border:0}
 .rec img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none}.rec small{color:var(--mut)}
+.lcard{border-top:1px solid var(--bd);padding:10px 0}.lcard h3{margin:0 0 4px;font-size:16px}.lcard table{width:100%;border-collapse:collapse}.lcard td{padding:3px 0;font-size:14px}.lcard td:last-child{text-align:right}.lcard td:first-child{color:var(--mut)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tk b{font-size:18px;display:block}.tk small{color:var(--mut)}
 #prev{max-width:100%;border-radius:8px;margin-top:8px;display:none}
 .x{margin-left:auto;background:none;border:0;color:var(--er);font-size:20px}
@@ -64,6 +65,7 @@ textarea{min-height:130px;font-family:ui-monospace,monospace;font-size:13px}
  <div class="menu">
   <button class="big" id="h0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v4l3 3v11H6V10l3-3z"/><path d="M6 15h12"/></svg><span>Jaugeage<small>Saisir un nouveau relevé</small></span></button>
   <button class="big" id="h1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Historique<small>Consulter les relevés et les photos</small></span></button>
+  <button class="big" id="h4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg><span>Dernier jaugeage<small>Dernier relevé de chaque cuve, PDF</small></span></button>
   <button class="big" id="h2" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M4 12h16"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Administration<small>Barèmes, coefficients et utilisateurs</small></span></button>
  </div>
 </section>
@@ -81,6 +83,7 @@ textarea{min-height:130px;font-family:ui-monospace,monospace;font-size:13px}
 </section>
 <section id="v1" hidden><div class="card"><h2>Historique</h2><p class="msg" style="margin:0 0 8px">Touchez un relevé pour voir tout le détail.</p><select id="ft"></select><div id="list"></div>
  <button class="btn s" id="csv">Exporter en CSV</button><div id="m1" class="msg"></div></div></section>
+<section id="v4" hidden><div class="card"><h2>Dernier jaugeage</h2><p class="msg" style="margin:0 0 8px">Dernier relevé de chaque cuve (consultation seule).</p><button class="btn" id="pdf">Créer le PDF (A4, sans photos)</button><div id="m4" class="msg"></div><div id="lv"></div></div></section>
 <section id="v2" hidden>
  <div class="card"><h2>Barème de la cuve</h2><label>Cuve</label><select id="at"></select>
   <label>Une ligne par hauteur : « cm;litres » (ex. 10;152,5). Les valeurs intermédiaires sont interpolées.</label>
@@ -324,7 +327,7 @@ $('bk').onclick=async function(){var m=$('m6'),btn=this;m.className='msg';btn.di
  finally{btn.disabled=false}};
 
 /* ---------- navigation / connexion ---------- */
-function show(n){[0,1,2,3].forEach(function(i){$('v'+i).hidden=i!==n});$('hdr').hidden=n===3;$('ptitle').textContent=['Jaugeage','Historique','Administration',''][n];window.scrollTo(0,0);if(n===0){lastCards();upd()}if(n===1)hist();if(n===2)loadAdmin()}
+function show(n){[0,1,2,3,4].forEach(function(i){$('v'+i).hidden=i!==n});$('hdr').hidden=n===3;$('ptitle').textContent=['Jaugeage','Historique','Administration','','Dernier jaugeage'][n];window.scrollTo(0,0);if(n===0){lastCards();upd()}if(n===1)hist();if(n===2)loadAdmin();if(n===4)lastView()}
 function toLogin(msg){L.sess=null;L.me=null;save();$('app').hidden=true;$('login').hidden=false;$('lm').className='msg er';$('lm').textContent=msg||'';$('pw').value=L.rem===false?'':(L.pw||'');$('em').value=L.rem===false?'':(L.pseudo||'')}
 async function silentLogin(){if(!L.rem||!L.pseudo||!L.pw)return false;try{await login(toEmail(L.pseudo),L.pw);await loadMe();return true}catch(e){if(e.name!=='TypeError'){L.pw='';save()}return false}}
 function toApp(){$('login').hidden=true;$('app').hidden=false;$('h2').hidden=!(L.me&&L.me.role==='admin');show(3);renderStatus();sync()}
@@ -332,7 +335,7 @@ $('lf').onsubmit=async function(ev){ev.preventDefault();var m=$('lm');m.classNam
  try{L.rem=$('rem').checked;await login(toEmail($('em').value),$('pw').value);await loadMe();L.pseudo=L.rem?$('em').value.trim():'';L.pw=L.rem?$('pw').value:'';save();toApp()}
  catch(e){m.className='msg er';m.textContent=(e.name==='TypeError')?'Réseau indisponible : connexion impossible.':e.message;if(!L.me)L.sess=null}};
 $('out').onclick=function(){L.pw='';toLogin('')};
-[0,1,2].forEach(function(i){$('h'+i).onclick=function(){show(i)}});$('back').onclick=function(){show(3)};
+[0,1,2,4].forEach(function(i){$('h'+i).onclick=function(){show(i)}});$('back').onclick=function(){show(3)};
 function goBack(){if(!$('dlg').hidden){$('dlg').hidden=true;return true}if(!$('v3').hidden)return false;show(3);return true}
 ['tank','j','tp'].forEach(function(i){$(i).oninput=upd});
 $('ft').onchange=hist;$('at').onchange=loadAdmin;
@@ -342,6 +345,59 @@ $('csv').onclick=function(){var a=allRecs().slice().sort(function(a,b){return a.
  var txt='Cuve;Date;Hauteur cm;Temp;Litrage;Coef;Valeur finale;Saisi par\n'+a.join('\n');$('m1').className='msg';
  try{var b=new Blob(['﻿'+txt],{type:'text/csv'}),u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='jaugeage.csv';l.click()}catch(e){}
  $('m1').innerHTML='<textarea readonly>'+esc(txt)+'</textarea>'};
+
+/* ---------- dernier jaugeage + PDF ---------- */
+function lastRecs(){var a=allRecs();return T.map(function(t){var r=null;a.forEach(function(x){if(x.tank===t[0]&&(!r||new Date(x.measured_at)>new Date(r.measured_at)))r=x});return[t[0],r]})}
+function lastView(){$('m4').textContent='';
+ $('lv').innerHTML=lastRecs().map(function(p){var r=p[1],nt=!r||r.temperature===null||r.temperature===undefined;
+  if(!r)return'<div class="lcard"><h3>'+nm(p[0])+'</h3><p class="msg" style="margin:4px 0 0">Aucun relevé.</p></div>';
+  var R=[['Date et heure',fdt(r.measured_at)],['Hauteur de tige',f(r.height,1,' cm')],['Valeur selon la hauteur',f(r.liters,1,' L')],['Température',nt?'non saisie':f(r.temperature,1,' °C')],['Coefficient correcteur',(p[0]==='P'&&nt)?'aucun':f(r.coef,6)],['Valeur après correction','<b>'+f(r.final_volume,1,' L')+'</b>']];
+  return'<div class="lcard"><h3>'+nm(p[0])+'</h3><table>'+R.map(function(x){return'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>'}).join('')+'</table></div>'}).join('')}
+function pdfEnc(s){s=String(s).replace(/[  ]/g,' ').replace(/[‘’]/g,"'").replace(/[–—]/g,'-');var o='';for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);if(c>255)c=63;var ch=String.fromCharCode(c);o+=(ch==='\\'||ch==='('||ch===')')?'\\'+ch:ch}return o}
+function pdfW(s,z){var w=0;s=String(s);for(var i=0;i<s.length;i++){var c=s.charAt(i);w+=/[0-9]/.test(c)?.556:(c===','||c==='.'||c===' '||c===' ')?.278:c==='-'?.333:.56}return w*z}
+function makePdf(){
+ var W=595,H=842,M=36,ops=[];
+ function T_(x,top,s,z,b){ops.push('BT /F'+(b?2:1)+' '+z+' Tf '+x.toFixed(2)+' '+(H-top).toFixed(2)+' Td ('+pdfEnc(s)+') Tj ET')}
+ function TR(xr,top,s,z,b){T_(xr-pdfW(s,z),top,s,z,b)}
+ function LN(x1,t1,x2,t2){ops.push(x1+' '+(H-t1)+' m '+x2+' '+(H-t2)+' l S')}
+ var now=new Date();
+ T_(M,56,'Coopérative Maritime',20,1);T_(M,78,'Derniers jaugeages par cuve',12,0);
+ TR(W-M,56,'Édité le '+now.toLocaleDateString('fr-FR')+' à '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),9,0);
+ var cols=[['Cuve','',90],['Date et heure','',82],['Hauteur','(cm)',62],['Valeur selon','hauteur (L)',82],['Température','(°C)',62],['Coefficient','correcteur',70],['Valeur après','correction (L)',75]];
+ var x0=M,top=110,hh=36,rh=44,n=T.length,xs=[],x=x0;cols.forEach(function(c){xs.push(x);x+=c[2]});var xe=x;
+ ops.push('0.5 w 0.9 g '+x0+' '+(H-top-hh)+' '+(xe-x0)+' '+hh+' re f 0 g 0 G');
+ cols.forEach(function(c,i){if(c[1]===''){T_(xs[i]+6,top+22,c[0],8.5,1)}else{T_(xs[i]+6,top+15,c[0],8.5,1);T_(xs[i]+6,top+27,c[1],8.5,1)}});
+ var rows=lastRecs();
+ rows.forEach(function(p,k){var r=p[1],y=top+hh+k*rh,nt=!r||r.temperature===null||r.temperature===undefined;
+  T_(xs[0]+6,y+26,nm(p[0]),10,1);
+  if(r){var d=new Date(r.measured_at),ok=!isNaN(d);
+   T_(xs[1]+6,y+19,ok?d.toLocaleDateString('fr-FR'):String(r.measured_at),10,0);T_(xs[1]+6,y+33,ok?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'',10,0);
+   TR(xs[2]+cols[2][2]-8,y+26,f(r.height,1),10,0);TR(xs[3]+cols[3][2]-8,y+26,f(r.liters,1),10,0);
+   TR(xs[4]+cols[4][2]-8,y+26,nt?'-':f(r.temperature,1),10,0);TR(xs[5]+cols[5][2]-8,y+26,(r.tank==='P'&&nt)?'-':f(r.coef,6),10,0);
+   TR(xs[6]+cols[6][2]-8,y+26,f(r.final_volume,1),10.5,1)}
+  else{T_(xs[1]+6,y+26,'Aucun relevé',10,0)}});
+ var yb=top+hh+n*rh;
+ for(var k=0;k<=n+1;k++){var yy=k===0?top:top+hh+(k-1)*rh;LN(x0,yy,xe,yy)}
+ xs.concat([xe]).forEach(function(xx){LN(xx,top,xx,yb)});
+ T_(M,yb+28,'Valeur après correction = valeur selon la hauteur x coefficient correcteur de température.',9,0);
+ T_(M,yb+42,'Cuve plaisance : pas de coefficient de température (coefficient = 1).',9,0);
+ var cs=ops.join('\n'),o=[],off=[],s='%PDF-1.4\n';
+ var objs=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+  '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+  '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+  '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+  '<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream'];
+ objs.forEach(function(b,i){off.push(s.length);s+=(i+1)+' 0 obj\n'+b+'\nendobj\n'});
+ var xr=s.length;s+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';
+ off.forEach(function(p){s+=('0000000000'+p).slice(-10)+' 00000 n \n'});
+ s+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+ return s}
+$('pdf').onclick=function(){var m=$('m4');m.className='msg';
+ try{var s=makePdf(),d=new Date(),nmf='dernier-jaugeage-'+d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+'.pdf';
+  if(window.JgAndroid){var r=String(window.JgAndroid.savePdf(btoa(s),nmf));if(r.indexOf('ok')===0){m.textContent='PDF enregistré dans Téléchargements : '+nmf}else{m.className='msg er';m.textContent='PDF impossible : '+r}return}
+  var u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;
+  var b=new Blob([u],{type:'application/pdf'}),url=URL.createObjectURL(b),l=document.createElement('a');l.href=url;l.download=nmf;document.body.appendChild(l);l.click();l.remove();
+  m.textContent='PDF créé : '+nmf}catch(e){m.className='msg er';m.textContent='Création du PDF impossible.'}};
 opts($('tank'));opts($('at'));opts($('ft'),true);$('dt').value=nowLocal();upd();
 document.addEventListener('visibilitychange',function(){if(!document.hidden)sync()});
 window.addEventListener('online',function(){sync()});
